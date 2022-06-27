@@ -1,0 +1,27 @@
+agent-type,agent-id,stance?,received-IP-list,sent-IP-list,IdentitySignature,topic
+basic-agents,ID-1,0,[],[],group-1,0
+basic-agents,ID-2,0,[],[],group-2,0
+basic-agents,ID-3,0,[],[],group-2,0
+information-diss-agents,ID-101,-3,[IP-1],[],0,topic-1
+information-diss-agents,ID-102,3,[IP-2],[],0,topic-2
+At tick 1
+agent type,id of turtle,stance at tick 1,received-IP-list at tick 1,sent-IP-list at tick 1,topic at tick 1
+basic-agents,ID-1,0,[],[],0
+basic-agents,ID-2,0,[],[],0
+basic-agents,ID-3,0,[],[],0
+information-diss-agents,ID-101,-3,[IP-1],[],topic-1
+information-diss-agents,ID-102,3,[IP-2],[],topic-2
+At tick 2
+agent type,id of turtle,stance at tick 2,received-IP-list at tick 2,sent-IP-list at tick 2,topic at tick 2
+basic-agents,ID-1,3,[IP-2],[],topic-2
+basic-agents,ID-2,0,[],[],0
+basic-agents,ID-3,0,[],[],0
+information-diss-agents,ID-101,-3,[IP-1],[],topic-1
+information-diss-agents,ID-102,3,[IP-2],[IP-2],topic-2
+At tick 3
+agent type,id of turtle,stance at tick 3,received-IP-list at tick 3,sent-IP-list at tick 3,topic at tick 3
+basic-agents,ID-1,3,[IP-2],[IP-2],topic-2
+basic-agents,ID-2,0,[],[],0
+basic-agents,ID-3,3,[IP-2],[],topic-2
+information-diss-agents,ID-101,-3,[IP-1],[],topic-1
+information-diss-agents,ID-102,3,[IP-2],[IP-2],topic-2
