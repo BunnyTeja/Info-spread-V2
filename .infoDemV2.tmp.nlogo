@@ -2,6 +2,7 @@ extensions [ csv ]
 globals
 [
 turtles-list
+  temp-agent-id
 sub-list
 initial-track-list
   track-list
@@ -23,6 +24,18 @@ initial-track-list1
   outboundtrust
   temp-topic-id
   threshold-inbound-trustscore
+  RelationshipAction1
+  InfoAction1
+  Ipiscompatible?
+  Weakencontact?
+  Strengthencontact?
+  RefuteanInformationPacket
+  AmplifyanInformationPacket
+  DenounceanAgentEndorsement
+  AddanAgentEndorsement
+  IncreaseMagnitudeofTopicStance
+  DecreaseMagnitudeofTopicStance
+
 ]
 
 turtles-own
@@ -1046,6 +1059,9 @@ while [ i < count-agents ] [
     let value item j data
     if value = 1[
       set inboundtrust value
+
+
+
       set threshold-inbound-trustscore 0.5
       ask turtle i [ ;Turtle trying to receive IPs
         if agent-type = "basic-agents" and temp-in-ip != 0;random 100 <= average-IP-sharing-tendency
@@ -1056,7 +1072,8 @@ while [ i < count-agents ] [
               let temp-group IdentitySignature ;;For compatibility  check to prioritize the IP's
               let temp-topic topic-id
               set temp-topic-id[]
-              let temp-agent-id agent-id
+              set temp-agent-id[]
+              set temp-agent-id lput agent-id temp-agent-id
               if topic-id != 0
               [set temp-topic-id topic-id]
               if turtle i != turtle j[
@@ -1068,14 +1085,144 @@ while [ i < count-agents ] [
                 let test-id[]
                 set test-id agent-id
                 let stance stance?
-                ask turtle i [
-                    if topic-id = temp-topic and IdentitySignature = temp-group ;;For compatibility  check to prioritize the IP's
-                    [
+
+ ; Relationship Actions
+      ifelse random 100 < 50 [
+      set Strengthencontact? true
+  ][
+      set Weakencontact? true
+  ]
+         if Strengthencontact? = true [
+      set inboundtrust inboundtrust + 1
+  ]
+        if Weakencontact? = true
+        [
+      set inboundtrust inboundtrust - 1
+  ]
+
+
+
+
+;; Information Actions
+                 ;; Amplify or refute an Information Packet
+                 ;; Add or denounce an Agent Endorsement to an InformationPacket
+
+ifelse random 100 < 50 [
+    set AmplifyanInformationPacket true
+][
+    set RefuteanInformationPacket true
+]
+       if AmplifyanInformationPacket = true [
+                    foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
+
+                        set amplification-of-Ip 1
+  ]
+]
                     ]
+                  ]
+      if RefuteanInformationPacket = true
+      [
+   foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
 
-             if random 100 <= average-IP-reading-tendency and inboundtrust >= threshold-inbound-trustscore[
-                      let temp-in-ip-test temp-in-ip
+                        set amplification-of-Ip -1
+  ]
+]
+                    ]
+  ]
 
+ifelse random 100 < 50 [
+    set AddanAgentEndorsement true
+][
+    set DenounceanAgentEndorsement true
+]
+       if AddanAgentEndorsement = true [
+                    foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
+
+                        set Endorsement-of-IP 1 ; EndorsementValue, modify the InboundTrustScore from the Agent to be Endorsed
+  ]
+]
+                    ]
+                  ]
+      if DenounceanAgentEndorsement = true
+      [
+   foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
+
+                        set Endorsement-of-IP -1
+  ]
+]
+                    ]
+  ]
+
+
+;;Identity Actions
+           ;; Increase or decrease magnitude of topic stance
+ ifelse random 100 < 50 [
+    set IncreaseMagnitudeofTopicStance true
+][
+    set DecreaseMagnitudeofTopicStance true
+]
+       if IncreaseMagnitudeofTopicStance = true [
+                    foreach sort turtles [ t ->
+     ask t [if agent-type = "Topics" and ip-id = temp-topic [
+
+                        set stance? stance? + 1
+  ]
+]
+                    ]
+                  ]
+      if DecreaseMagnitudeofTopicStance = true
+      [
+   foreach sort turtles [ t ->
+     ask t [if agent-type = "Topics" and ip-id = temp-topic [
+
+                        set stance? stance? - 1
+  ]
+]
+                    ]
+  ]
+
+          ;; Add triad to TriadStack or delet triad
+            ifelse random 100 < 50 [
+    set AddTriadtoTriadStack true
+][
+    set RemoveTriad true
+]
+       if AddTriadtoTriadStack = true [
+                    foreach sort turtles [ t ->
+     ask t [if agent-id = test-ids  [
+
+                        set triadstack 1
+  ]
+]
+                    ]
+                  ]
+      if RemoveTriad = true
+      [
+   foreach sort turtles [ t ->
+     ask t [if agent-id = test-ids  [
+
+                        set triadstack  -1
+  ]
+]
+                    ]
+  ]
+
+
+                   ;;For compatibility  check to prioritize the IP's
+                  ask turtle i [
+                  if topic-id = temp-topic and IdentitySignature = temp-group
+                    [
+
+                    set  Ipiscompatible? true
+
+                    ]
+             ;; Conditions that need to be satisfied for considering the IP's for processing inboundtrust >= threshold-inbound-trustscore
+             if random 100 <= average-IP-reading-tendency and inboundtrust >= threshold-inbound-trustscore and Ipiscompatible?[
+             let temp-in-ip-test temp-in-ip
              set stance?  stance
              set color red
 
@@ -1084,10 +1231,12 @@ while [ i < count-agents ] [
              set topic-id temp-topic-id
      print temp-agent-id
 print temp-in-ip
+
  foreach sort turtles [ t ->
     ask t [if agent-type = "IPs" [
-   print temp-agent-id
-             set Endorsement-of-IP lput temp-agent-id Endorsement-of-IP
+  ; print temp-agent-id
+           ;  set Endorsement-of-IP lput temp-agent-id Endorsement-of-IP
+                          set Endorsement-of-IP temp-agent-id
     ]
     ]
   ]
@@ -1108,6 +1257,7 @@ print temp-in-ip
                     ]]
 
               ]
+
               ]
               ]
             ]
