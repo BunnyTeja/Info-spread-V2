@@ -1,0 +1,7 @@
+agent-type,agent-id,stance?,topic-id
+At tick 1
+agent type,id of turtle,stance at tick 1,topic-id1,shape1
+At tick 2
+agent type,id of turtle,stance at tick 2,topic-id2,shape2
+At tick 3
+agent type,id of turtle,stance at tick 3,topic-id3,shape3
