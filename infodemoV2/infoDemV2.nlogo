@@ -23,6 +23,7 @@ initial-track-list1
   inboundtrust
   outboundtrust
   temp-topic-id
+  threshold-outbound-trustScore
   threshold-inbound-trustscore
   RelationshipAction1
   InfoAction1
@@ -37,6 +38,7 @@ initial-track-list1
   DecreaseMagnitudeofTopicStance
   AddTriadtoTriadStack
   RemoveTriad
+
 ]
 
 turtles-own
@@ -65,12 +67,12 @@ nb-connections-out ;;should have in and out link connections
 nb-group-affiliations?
 nb-topics-read?
 nb-interests?
-
+Inbox
 
 stance?
 
 
-
+Initial-Endorsement
 
 
 
@@ -83,12 +85,21 @@ received-IP-list
 sent-IP-list
 connected-to-diss-agent?
 
-
+;;;;IP specific
 target-group   ; Ip specific
 source    ; Ip specific
 Endorsement-of-IP ; Ip specific
 Amplification-of-IP ; Ip specific
 censure ; Ip specific
+IP-id ;IP specific
+Related-topic-id ;IP specific
+
+
+Ref_id_to_Info_Atrifact;;A reference ID to the original source information artifact.
+Triad;;A Triad
+
+
+
 
 
 group-prestige ;; group specific
@@ -96,10 +107,9 @@ group-id
 
 topic-id ; Topic specific
 
-IP-id;IP specific
-Related-topic-id;IP specific
 
-  ;track specific
+
+;track specific
 initial-stance
 initial-received-IPs
 initial-sent-IPs
@@ -183,6 +193,7 @@ create-turtles 1 [
 ;        set xcor item 3 data
 ;        set ycor item 4 data
   set shape "person"
+  set color yellow
 ]
     set i i + 1
 
@@ -623,6 +634,7 @@ create-turtles 1 [
   set agent-type item 2 data
   set Related-topic-id item 3 data
   set IP-id item 4 data
+      set Triad ["topic-1" "group-1" 1.5]
   set shape "square"
 ]
     set i i + 1
@@ -642,7 +654,7 @@ end
 to go
 let tick-count  0
 
-repeat 4[
+repeat 10[
    export-world "infoex.csv"
 ;  write-to-file
 ;  writeIPs-to-file
@@ -924,13 +936,13 @@ to writegroupss-to-file
     ]
       ]
   ]
-   print(track-list4)
+;   print(track-list4)
     ;csv:to-file "track-init.csv" track-list
   ]
 
 
   if i  != 0[
-  print i
+;  print i
     set initial-track-list4 []
     set ticknolist []
     let tickno word "At tick " i
@@ -950,7 +962,7 @@ to writegroupss-to-file
     set track-list4 lput ticknolist track-list4
     set track-list4 lput initial-track-list4 track-list4
 
-      print(track-list4)
+;      print(track-list4)
      foreach sort turtles [ t ->
     ask t [
         if agent-type = "groups"
@@ -971,7 +983,6 @@ end
 to send
 
 file-close-all ; close all open files
-
 if not file-exists? "Example_out_adjacency_matrix.csv" [
   user-message "No file 'Example_out_adjacency_matrix.csv' exists."
   stop
@@ -984,7 +995,7 @@ let i 0 ; initializing the row number of the adjacency matrix
 let count-agents nb-basic-agents + nb-information-diss-agents + nb-physical-event-agents + nb-live-agents + nb-spokesperson-agents + nb-flow-manipulator-agents
 let x 0
 
-while [ i < count-agents ] [
+while [ i < count-agents - nb-physical-event-agents ] [
      ask turtle i [
       set out-trust[]]
 
@@ -996,18 +1007,28 @@ while [ i < count-agents ] [
   repeat count-agents [ ; repeating hundred times for each row i bcz we have hundred columns
     let value item j data
          ask turtle i [
-        set out-trust lput value out-trust
+        set out-trust lput value out-trust ;;If there is a out-link we are setting the value of out-trust for this channel
+
       ]
 
     if value = 1[
+        set outboundtrust value
+         set threshold-outbound-trustScore 0.5
      ask turtle i [
         set k k + 1
         set nb-connections-out k
-          if length(Received-IP-list) != 0 and random 100 <= average-IP-sharing-tendency
+
+        ;; Send logic for information-diss-agents(they check the outboundtrust value and update the receiver inbox with selected_IPs_list )
+
+ if agent-type = "information-diss-agents" [
+          if length(Received-IP-list) != 0 and random 100 <= average-IP-sharing-tendency and  outboundtrust > threshold-outbound-trustScore
         [
+
            let temp-in-ip-test temp-in-ip
-            ask turtle j[
-              if agent-type =  "basic-agents" ;and random 100 <= average-IP-reading-tendency
+           let Selected_IPs_to_send Received-IP-list
+           set sent-IP-list Selected_IPs_to_send  ;; (Update the sent-IP-list of the sender  with the Selected IPs)
+            ask turtle j[ ; Receiver
+              if agent-type =  "basic-agents"
            [
               let test-id 0
               ask turtle i[set temp-out-ip temp-in-ip-test
@@ -1015,96 +1036,20 @@ while [ i < count-agents ] [
               ]
           set agent-trying-to-send test-id
           set temp-in-ip temp-in-ip-test
+          set inbox Selected_IPs_to_send ;;(Update the recipients Inbox with the Selected IPs)
                 ]
           ]
         ]
-      ]
-    ]
-    set j j + 1
-  ]
-  set i i + 1
-]
-
-;   print k
-file-close ; make sure to close the file
-end
+        ]
 
 
+        ;; Send logic for basic-agents(they check the outboundtrust value and update the receiver inbox with selected_IPs_list )
 
-
-
-to read
-file-close-all ; close all open files
-
-if not file-exists? "Example_in_adjacency_matrix.csv" [
-  user-message "No file 'Example_in_adjacency_matrix.csv' exists."
-  stop
-]
-
-file-open "Example_in_adjacency_matrix.csv" ; open the file with the links data
-
-; We'll read all the data in a single loop
-let i 0 ; initializing the row number of the adjacency matrix
-let count-agents nb-basic-agents + nb-information-diss-agents + nb-physical-event-agents + nb-live-agents + nb-spokesperson-agents + nb-flow-manipulator-agents
-let x 0
-
-
-while [ i < count-agents ] [
-
-  ; here the CSV extension grabs a single line and puts the read data in a list
-  let data csv:from-row file-read-line
-  ; now we can use that list to create a turtle with the saved properties
-  let j 0 ; cloumn number of the adjacency matrix
-  let k 0
-  repeat count-agents [ ; repeating hundred times for each row i bcz we have hundred columns
-    let value item j data
-    if value = 1[
-      set inboundtrust value
-
-
-
-      set threshold-inbound-trustscore 0.5
-      ask turtle i [ ;Turtle trying to receive IPs
-        if agent-type = "basic-agents" and temp-in-ip != 0;random 100 <= average-IP-sharing-tendency
+          if agent-type = "basic-agents" [
+          if length(Received-IP-list) != 0 and random 100 <= average-IP-sharing-tendency and  outboundtrust > threshold-outbound-trustScore
         [
 
-            let test-ids agent-trying-to-send
-         ask turtle j[ ;Turtle trying to send IPs
-              let temp-group IdentitySignature ;;For compatibility  check to prioritize the IP's
-              let temp-topic topic-id
-              set temp-topic-id[]
-              set temp-agent-id[]
-              set temp-agent-id lput agent-id temp-agent-id
-              if topic-id != 0
-              [set temp-topic-id topic-id]
-              if turtle i != turtle j[
-              ;;check if it is connected through the in-links also
-              if test-ids = agent-id
-
-
-           [
-                let test-id[]
-                set test-id agent-id
-                let stance stance?
-
- ; Relationship Actions
-      ifelse random 100 < 50 [
-      set Strengthencontact? true
-  ][
-      set Weakencontact? true
-  ]
-         if Strengthencontact? = true [
-      set inboundtrust inboundtrust + 1
-  ]
-        if Weakencontact? = true
-        [
-      set inboundtrust inboundtrust - 1
-  ]
-
-
-
-
-;; Information Actions
+              ;; Information Actions
                  ;; Amplify or refute an Information Packet
                  ;; Add or denounce an Agent Endorsement to an InformationPacket
 
@@ -1114,24 +1059,51 @@ ifelse random 100 < 50 [
     set RefuteanInformationPacket true
 ]
        if AmplifyanInformationPacket = true [
-                    foreach sort turtles [ t ->
-     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
 
-                        set amplification-of-Ip 1
+                let l  0
+              while [l < length(Received-IP-list)][
+               let current_ip item l Received-IP-list
+
+
+                    foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = current_ip [
+
+                        let ips_stance item 2 triad
+                    if ips_stance > 0
+                    [set ips_stance  ips_stance + 0.1]
+                    if ips_stance < 0
+                    [ set ips_stance  ips_stance - 0.1]
+                    set triad remove-item 2 triad
+                    set triad insert-item 2 triad ips_stance
   ]
 ]
                     ]
+                   set l l + 1
+                ]
                   ]
       if RefuteanInformationPacket = true
       [
-   foreach sort turtles [ t ->
-     ask t [if agent-type = "IPs" and ip-id = temp-in-ip [
 
-                        set amplification-of-Ip -1
+                let l  0
+              while [l < length(Received-IP-list)][
+               let current_ip item l Received-IP-list
+
+                    foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = current_ip [
+
+                        let ips_stance item 2 triad
+                    if ips_stance > 0
+                    [set ips_stance  ips_stance - 0.1]
+                    if ips_stance < 0
+                    [ set ips_stance  ips_stance + 0.1]
+                    set triad remove-item 2 triad
+                    set triad insert-item 2 triad ips_stance
   ]
 ]
                     ]
-  ]
+                   set l l + 1
+                ]
+                  ]
 
 ifelse random 100 < 50 [
     set AddanAgentEndorsement true
@@ -1159,7 +1131,153 @@ ifelse random 100 < 50 [
   ]
 
 
-;;Identity Actions
+
+
+           let temp-in-ip-test temp-in-ip
+           let Selected_IPs_to_send Received-IP-list
+            ask turtle j[
+              if agent-type =  "basic-agents" ;and random 100 <= average-IP-reading-tendency
+           [
+              let test-id 0
+              ask turtle i[set temp-out-ip temp-in-ip-test
+              set test-id agent-id
+              ]
+          set agent-trying-to-send test-id
+          set temp-in-ip temp-in-ip-test
+          set inbox Selected_IPs_to_send
+                ]
+          ]
+        ]
+        ]
+      ]
+    ]
+    set j j + 1
+  ]
+  set i i + 1
+]
+
+;   print k
+file-close ; make sure to close the file
+end
+
+
+
+
+
+to read
+file-close-all ; close all open files
+          ;;Logic to create the physical event agents in middle of the simulation
+  if ticks = 4[
+  set nb-physical-event-agents 2
+  create-nb-physical-event-agents
+  ]
+
+if not file-exists? "Example_in_adjacency_matrix.csv" [
+  user-message "No file 'Example_in_adjacency_matrix.csv' exists."
+  stop
+]
+
+file-open "Example_in_adjacency_matrix.csv" ; open the file with the links data
+
+; We'll read all the data in a single loop
+let i 0 ; initializing the row number of the adjacency matrix
+let count-agents nb-basic-agents + nb-information-diss-agents + nb-physical-event-agents + nb-live-agents + nb-spokesperson-agents + nb-flow-manipulator-agents
+let x 0
+
+
+while [ i < count-agents ] [
+
+  ; here the CSV extension grabs a single line and puts the read data in a list
+  let data csv:from-row file-read-line
+  ; now we can use that list to create a turtle with the saved properties
+  let j 0 ; cloumn number of the adjacency matrix
+  let k 0
+  repeat count-agents [ ; repeating hundred times for each row i bcz we have hundred columns
+    let value item j data
+    if value = 1[
+      set inboundtrust value ; after checking if there is a inlink setting the inboundtrust of the reception clannel as 1.
+
+
+
+      set threshold-inbound-trustscore 0.5
+      ask turtle i [ ;Turtle trying to receive IPs
+
+
+
+        if agent-type = "basic-agents" and temp-in-ip != 0 and inbox != 0;random 100 <= average-IP-sharing-tendency
+        [
+
+            let l  0
+              while [l < length(inbox)][
+               let inbox_ip item l inbox
+            print inbox_ip
+            set l l + 1
+
+              ifelse  member? inbox_ip received-ip-list [
+                foreach sort turtles [ t ->
+     ask t [if agent-type = "IPs" and ip-id = inbox_ip [
+
+                    if Initial-Endorsement != Endorsement-of-IP[
+                    ]
+
+  ]
+]
+                    ]
+              ]
+              [
+
+
+
+
+
+
+            let test-ids agent-trying-to-send
+         ask turtle j[ ;Turtle trying to send IPs
+              let temp-group IdentitySignature ;;For compatibility  check to prioritize the IP's
+              let temp-topic topic-id
+              set temp-topic-id[]
+              set temp-agent-id[]
+              set temp-agent-id lput agent-id temp-agent-id
+              if topic-id != 0
+              [set temp-topic-id topic-id]
+              if turtle i != turtle j[
+              ;;check if it is connected through the in-links also
+              if test-ids = agent-id
+
+
+           [
+                let test-id[]
+                set test-id agent-id
+                let stance stance?
+
+
+                   ;;For compatibility  check to prioritize the IP's
+                  ask turtle i [
+;                  if topic-id = temp-topic and IdentitySignature = temp-group
+;                    [
+;                    set  Ipiscompatible? true
+;                    ]
+             ;; Conditions that need to be satisfied for considering the IP's for processing inboundtrust >= threshold-inbound-trustscore
+             if random 100 <= average-IP-reading-tendency and inboundtrust >= threshold-inbound-trustscore [
+             let temp-in-ip-test temp-in-ip
+             set stance?  stance
+             set color red
+
+ ;Relationship Actions
+      ifelse random 100 < 50 [
+      set Strengthencontact? true
+  ][
+      set Weakencontact? true
+  ]
+         if Strengthencontact? = true [
+      set inboundtrust inboundtrust + 1
+  ]
+        if Weakencontact? = true
+        [
+      set inboundtrust inboundtrust - 1
+  ]
+
+   ;;;Identity Actions
            ;; Increase or decrease magnitude of topic stance
  ifelse random 100 < 50 [
     set IncreaseMagnitudeofTopicStance true
@@ -1213,23 +1331,9 @@ ifelse random 100 < 50 [
   ]
 
 
-                   ;;For compatibility  check to prioritize the IP's
-                  ask turtle i [
-                  if topic-id = temp-topic and IdentitySignature = temp-group
-                    [
-                    set  Ipiscompatible? true
-                    ]
-             ;; Conditions that need to be satisfied for considering the IP's for processing inboundtrust >= threshold-inbound-trustscore
-             if random 100 <= average-IP-reading-tendency and inboundtrust >= threshold-inbound-trustscore and Ipiscompatible?[
-             let temp-in-ip-test temp-in-ip
-             set stance?  stance
-             set color red
-
-
-
              set topic-id temp-topic-id
-     print temp-agent-id
-print temp-in-ip
+    ; print temp-agent-id
+;print temp-in-ip
 
  foreach sort turtles [ t ->
     ask t [if agent-type = "IPs" [
@@ -1261,6 +1365,8 @@ print temp-in-ip
               ]
             ]
           ]
+          ]
+        ]
         ]
 
       ]
@@ -1363,7 +1469,7 @@ nb-spokesperson-agents
 nb-spokesperson-agents
 0
 5
-1.0
+0.0
 1
 1
 NIL
@@ -1378,7 +1484,7 @@ nb-live-agents
 nb-live-agents
 0
 10
-0.0
+1.0
 1
 1
 NIL
@@ -1438,7 +1544,7 @@ nb-physical-event-agents
 nb-physical-event-agents
 0
 5
-0.0
+2.0
 1
 1
 NIL
